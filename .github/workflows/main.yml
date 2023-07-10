@@ -19,13 +19,10 @@ jobs:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
           echo $NGROK_AUTH_TOKEN > /tmp/ngrok.token
-      - name: Copy NSSM & Ngrok to Windows Directory
+      - name: Start ngrok
         run: |
-          mkdir -p /tmp/nssm
-          cp /tmp/ngrok.token /tmp/nssm/ngrok.token
-          cp /tmp/ngrok.exe /tmp/nssm/ngrok.exe
-      - name: Run ngrok.exe authtoken env & enable TS
+          ngrok authtoken /tmp/ngrok.token
+          ngrok tcp 3389
+      - name: Open RDP connection
         run: |
-          cd /tmp/nssm
-          ngrok.exe authtoken ${{ env.NGROK_AUTH_TOKEN }}
-          ngrok.exe tcp 3389 --authtoken ${{ env.NGROK_AUTH_TOKEN }} --bind-tls=true --log stdout --log-level=info --config ./ngrok.yml
+          xfreerdp /u:Administrator /p:password /v:localhost:3389
