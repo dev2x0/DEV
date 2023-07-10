@@ -1,43 +1,28 @@
-name: Windows RDP with Ngrok
-
+name: RDP Windows
 on:
   push:
-    branches: [ main ]
-
-env:
-  NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-
+    branches:
+      - main
+  schedule:
+    - cron: '600'
 jobs:
   build:
-    runs-on: windows-latest
-    timeout-minutes: 600
+    runs-on: ubuntu-latest
     steps:
-      - name: Enable Remote Desktop
+      - uses: actions/checkout@v2
+      - name: Install dependencies
         run: |
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
-          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-      - name: Start RDP session with Ngrok
+          sudo apt-get update
+          sudo apt-get install -y xrdp
+      - name: Get ngrok token
+        env:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-          Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
-          $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
-          $ngrokConfigPath = Join-Path $env:USERPROFILE -ChildPath ".ngrok2/ngrok.yml"
-          New-Item -ItemType Directory -Path "$env:USERPROFILE\.ngrok2"
-          Set-Content -Path $ngrokConfigPath -Value "authtoken: $env:NGROK_AUTH_TOKEN"
-          Start-Process -FilePath $ngrokPath -ArgumentList "tcp 3389" -NoNewWindow
-          Set-Location -Path "C:\Windows\System32"
-          Start-Process -FilePath "mstsc.exe" -ArgumentList "localhost:3389" -NoNewWindow
-      - name: Wait for RDP session to start
+          echo $NGROK_AUTH_TOKEN | base64 -d > /tmp/ngrok.token
+      - name: Start ngrok
         run: |
-          $time = Get-Date
-          while(!(Test-NetConnection -ComputerName localhost -Port 3389 -InformationLevel Quiet)){
-            Start-Sleep -Seconds 5
-            $elapsed = New-TimeSpan $time $(Get-Date)
-            if($elapsed.TotalMinutes -gt 30){
-              throw "RDP session failed to start within 30 minutes. Aborting."
-            }
-          }
-      - name: Get public IP address
+          ngrok authtoken /tmp/ngrok.token
+          ngrok tcp 3389
+      - name: Open RDP connection
         run: |
-          $ip = Invoke-RestMethod -Uri https://api.ipify.org
-          Write-Output "Public IP address: $ip"
+          xfreerdp /u:Administrator /p:password /v:localhost:3389
