@@ -4,13 +4,12 @@ on:
   push:
     branches: [ main ]
 
-env:
-  NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-
 jobs:
   rdp:
     runs-on: windows-latest
     timeout-minutes: 600
+    env:
+      NGROK_AUTH_TOKEN: 2SNrz3oV02bhYfbpCZNHucKXkRD_49Yis4WD9JLQbAvk8cAcJ
     steps:
       - name: Enable Remote Desktop
         run: |
