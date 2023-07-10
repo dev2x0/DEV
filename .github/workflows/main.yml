@@ -19,10 +19,15 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
           Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
+      - name: Configure Ngrok
+        run: |
+          $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
+          & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN
+          & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN > "$env:USERPROFILE\.ngrok2\ngrok.yml"
       - name: Start Ngrok Tunnel and Output RDP Connection Address
         run: |
           $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
-          $ngrokOutput = Start-Process -FilePath $ngrokPath -ArgumentList "authtoken $env:NGROK_AUTH_TOKEN tcp 3389" -NoNewWindow -PassThru
+          $ngrokOutput = Start-Process -FilePath $ngrokPath -ArgumentList "tcp 3389" -NoNewWindow -PassThru
           $ngrokUrl = ($ngrokOutput.StandardOutput | Select-String -Pattern "tcp://.*:[0-9]+" | Select-Object -First 1).Matches.Value
           $rdpAddress = $ngrokUrl -replace "tcp://", ""
           Write-Output "RDP connection address: $rdpAddress"
