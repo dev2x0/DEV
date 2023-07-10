@@ -7,6 +7,7 @@ on:
 jobs:
   rdp:
     runs-on: windows-latest
+    timeout-minutes: 600
     steps:
       - name: Enable Remote Desktop
         run: |
@@ -21,4 +22,8 @@ jobs:
           C:\Users\runneradmin\ngrok\ngrok.exe authtoken 2SNrz3oV02bhYfbpCZNHucKXkRD_49Yis4WD9JLQbAvk8cAcJ
       - name: Start Ngrok Tunnel
         run: |
-          C:\Users\runneradmin\ngrok\ngrok.exe tcp 3389
+          C:\Users\runneradmin\ngrok\ngrok.exe tcp 3389 --remote-addr 1.tcp.ngrok.io:12345 --auth "USERNAME:PASSWORD" --log ngrok.log &
+          Start-Sleep -Seconds 10
+          $ngrokUrl = Get-Content ngrok.log | Select-String -Pattern "tcp://.*:[0-9]+" | Select-Object -First 1 -ExpandProperty Matches | Select-Object -First 1 -ExpandProperty Value
+          $rdpAddress = $ngrokUrl -replace "tcp://", ""
+          Write-Output "RDP connection address: $rdpAddress"
