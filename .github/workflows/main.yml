@@ -18,7 +18,7 @@ jobs:
         env:
           NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          echo "authtoken: $NGROK_AUTH_TOKEN" | base64 -d > /tmp/ngrok.token
+          echo $NGROK_AUTH_TOKEN > /tmp/ngrok.token
       - name: Copy NSSM & Ngrok to Windows Directory
         run: |
           mkdir -p /tmp/nssm
