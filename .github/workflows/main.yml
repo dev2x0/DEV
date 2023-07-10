@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+env:
+  NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+
 jobs:
   rdp:
     runs-on: windows-latest
@@ -20,7 +23,7 @@ jobs:
       - name: Start Ngrok Tunnel and Output RDP Connection Address
         run: |
           $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
-          $ngrokOutput = Start-Process -FilePath $ngrokPath -ArgumentList "authtoken ${{ secrets.NGROK_AUTH_TOKEN }} tcp 3389" -NoNewWindow -PassThru
+          $ngrokOutput = Start-Process -FilePath $ngrokPath -ArgumentList "authtoken $env:NGROK_AUTH_TOKEN tcp 3389" -NoNewWindow -PassThru
           $ngrokUrl = ($ngrokOutput.StandardOutput | Select-String -Pattern "tcp://.*:[0-9]+" | Select-Object -First 1).Matches.Value
           $rdpAddress = $ngrokUrl -replace "tcp://", ""
           Write-Output "RDP connection address: $rdpAddress"
