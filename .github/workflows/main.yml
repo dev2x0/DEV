@@ -15,13 +15,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xrdp
       - name: Get ngrok token
-        env:
-          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16'
+      - name: Install ngrok
         run: |
-          echo $NGROK_AUTH_TOKEN | base64 -d > /tmp/ngrok.token
+          npm install -g ngrok
+      - name: Get input token
+        id: input-token
+        uses: actions/core/getInput@v1
+        with:
+          key: NGROK_AUTH_TOKEN
       - name: Start ngrok
         run: |
-          ngrok authtoken /tmp/ngrok.token
+          ngrok authtoken ${{ steps.input-token.outputs.value }}
           ngrok tcp 3389
       - name: Open RDP connection
         run: |
