@@ -1,56 +1,58 @@
 name: Windows RDP with Ngrok and NSSM
 
-on: [push]
+on:
+  push:
+    branches: [ main ]
+
+env:
+  NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
 jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 600
-    env:
-      NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
     steps:
-    - name: Install ngrok and NSSM
-      run: |
-        Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-        Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
-        Set-Item -Path 'Env:Path' -Value "$env:USERPROFILE\ngrok.exe;$Env:Path"
-        Invoke-WebRequest -Uri https://nssm.cc/release/nssm-2.24.zip -OutFile nssm.zip
-        Expand-Archive nssm.zip -DestinationPath $env:USERPROFILE
-        Set-Item -Path 'Env:Path' -Value "$env:USERPROFILE\nssm-2.24\win64\;$Env:Path"
-      # Debugging: Check if ngrok is in the PATH environment variable
-      - name: Debug PATH and ngrok
+      - name: Install ngrok and NSSM
         run: |
-          Write-Output "PATH environment variable: $env:Path"
-          Write-Output "ngrok path: $(Get-Command ngrok)"
-    - name: Create RDP user and start RDP session
-      run: |
-        net user rdpuser Passw0rd! /add
-        net localgroup "Remote Desktop Users" rdpuser /add
-        Invoke-Expression "cmdkey /generic:TERMSRV/localhost /user:rdpuser /pass:Passw0rd!; mstsc /v:localhost"
-      # Debugging: Check if RDP session is started
-      - name: Debug RDP session
+          Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
+          Set-Item -Path 'Env:Path' -Value "$env:USERPROFILE\ngrok.exe;$Env:Path"
+          Invoke-WebRequest -Uri https://nssm.cc/release/nssm-2.24.zip -OutFile nssm.zip
+          Expand-Archive nssm.zip -DestinationPath $env:USERPROFILE
+          Set-Item -Path 'Env:Path' -Value "$env:USERPROFILE\nssm-2.24\win64\;$Env:Path"
+      - name: Create RDP user and start RDP session
         run: |
-          Write-Output "RDP session started."
-    - name: Start ngrok tunnel
-      run: |
-        ngrok authtoken ${{ env.NGROK_AUTH_TOKEN }}
-        ngrok tcp 3389
-      # Debugging: Check if ngrok tunnel is started
-      - name: Debug ngrok tunnel
+          net user rdpuser Passw0rd! /add
+          net localgroup "Remote Desktop Users" rdpuser /add
+          Invoke-Expression "cmdkey /generic:TERMSRV/localhost /user:rdpuser /pass:Passw0rd!; mstsc /v:localhost"
+      - name: Start ngrok tunnel
         run: |
-          Write-Output "ngrok tunnel started."
-    - name: Install Remote Desktop as Windows service
-      run: |
-        nssm install RemoteDesktop C:\Windows\System32\mstsc.exe
-      # Debugging: Check if Remote Desktop is installed as a service
-      - name: Debug Remote Desktop service
+          ngrok.exe authtoken ${{ env.NGROK_AUTH_TOKEN }}
+          ngrok.exe tcp 3389
+      - name: Install Remote Desktop as Windows service
         run: |
-          sc queryex RemoteDesktop
-    - name: Get public IP address
-      run: |
-        $ip = Invoke-RestMethod -Uri https://api.ipify.org
-        Write-Output "Public IP address: $ip"
-      # Debugging: Check public IP address
-      - name: Debug public IP
+          nssm install RemoteDesktop C:\Windows\System32\mstsc.exe
+      - name: Wait for RDP session to start
         run: |
+          $time = Get-Date
+          while(!(Test-NetConnection -ComputerName localhost -Port 3389 -InformationLevel Quiet)){
+            Start-Sleep -Seconds 5
+            $elapsed = New-TimeSpan $time $(Get-Date)
+            if($elapsed.TotalMinutes -gt 30){
+              throw "RDP session failed to start within 30 minutes. Aborting."
+            }
+          }
+      - name: Wait for ngrok tunnel to start
+        run: |
+          $time = Get-Date
+          while(!(Invoke-RestMethod http://localhost:4040/api/tunnels | ConvertFrom-Json).tunnels[0].public_url){
+            Start-Sleep -Seconds 5
+            $elapsed = New-TimeSpan $time $(Get-Date)
+            if($elapsed.TotalMinutes -gt 30){
+              throw "Ngrok tunnel failed to start within 30 minutes. Aborting."
+            }
+          }
+      - name: Get public IP address
+        run: |
+          $ip = Invoke-RestMethod -Uri https://api.ipify.org
           Write-Output "Public IP address: $ip"
