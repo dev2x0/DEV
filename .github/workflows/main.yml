@@ -16,10 +16,10 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
           Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
-          Set-Item -Path 'Env:Path' -Value "$env:USERPROFILE\ngrok.exe;$Env:Path"
+          Copy-Item -Path "$env:USERPROFILE\ngrok.exe" -Destination 'C:\Windows' -Force
           Invoke-WebRequest -Uri https://nssm.cc/release/nssm-2.24.zip -OutFile nssm.zip
           Expand-Archive nssm.zip -DestinationPath $env:USERPROFILE
-          Set-Item -Path 'Env:Path' -Value "$env:USERPROFILE\nssm-2.24\win64\;$Env:Path"
+          Copy-Item -Path "$env:USERPROFILE\nssm-2.24\win64\nssm.exe" -Destination 'C:\Windows' -Force
       - name: Create RDP user and start RDP session
         run: |
           net user rdpuser Passw0rd! /add
@@ -27,11 +27,11 @@ jobs:
           Invoke-Expression "cmdkey /generic:TERMSRV/localhost /user:rdpuser /pass:Passw0rd!; mstsc /v:localhost"
       - name: Start ngrok tunnel
         run: |
-          ngrok.exe authtoken ${{ env.NGROK_AUTH_TOKEN }}
-          ngrok.exe tcp 3389
+          C:\Windows\ngrok.exe authtoken ${{ env.NGROK_AUTH_TOKEN }}
+          C:\Windows\ngrok.exe tcp 3389
       - name: Install Remote Desktop as Windows service
         run: |
-          nssm install RemoteDesktop C:\Windows\System32\mstsc.exe
+          C:\Windows\nssm.exe install RemoteDesktop C:\Windows\System32\mstsc.exe
       - name: Wait for RDP session to start
         run: |
           $time = Get-Date
