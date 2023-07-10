@@ -27,7 +27,7 @@ jobs:
       - name: Start Ngrok Tunnel and Output RDP Connection Address
         run: |
           $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
-          & $ngrokPath tcp 3389 --config="$env:USERPROFILE\.ngrok2\ngrok.yml" --log=stdout > ngrok.log &
+          & $ngrokPath tcp 3389 --config="C:\Users\runneradmin\.ngrok2\ngrok.yml" --log=stdout > ngrok.log &
           Start-Sleep -Seconds 10
           $ngrokUrl = Get-Content ngrok.log | Select-String -Pattern "tcp://.*:[0-9]+" | Select-Object -First 1 -ExpandProperty Matches | Select-Object -First 1 -ExpandProperty Value
           $rdpAddress = $ngrokUrl -replace "tcp://", ""
