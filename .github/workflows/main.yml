@@ -37,16 +37,6 @@ jobs:
               throw "RDP session failed to start within 30 minutes. Aborting."
             }
           }
-      - name: Wait for ngrok tunnel to start
-        run: |
-          $time = Get-Date
-          while(!(Invoke-RestMethod http://localhost:8080 | ConvertFrom-Json).tunnels[0].public_url){
-            Start-Sleep -Seconds 5
-            $elapsed = New-TimeSpan $time $(Get-Date)
-            if($elapsed.TotalMinutes -gt 30){
-              throw "Ngrok tunnel failed to start within 30 minutes. Aborting."
-            }
-          }
       - name: Get public IP address
         run: |
           $ip = Invoke-RestMethod -Uri https://api.ipify.org
