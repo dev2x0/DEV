@@ -1,4 +1,4 @@
-name: Windows RDP with Ngrok and NSSM
+name: Windows RDP with Ngrok
 
 on:
   push:
@@ -12,26 +12,21 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 600
     steps:
-      - name: Install ngrok and NSSM
+      - name: Enable Remote Desktop
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+      - name: Start RDP session with Ngrok
         run: |
           Invoke-WebRequest -Uri https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
           Expand-Archive ngrok.zip -DestinationPath $env:USERPROFILE
-          Copy-Item -Path "$env:USERPROFILE\ngrok.exe" -Destination 'C:\Windows' -Force
-          Invoke-WebRequest -Uri https://nssm.cc/release/nssm-2.24.zip -OutFile nssm.zip
-          Expand-Archive nssm.zip -DestinationPath $env:USERPROFILE
-          Copy-Item -Path "$env:USERPROFILE\nssm-2.24\win64\nssm.exe" -Destination 'C:\Windows' -Force
-      - name: Create RDP user and start RDP session
-        run: |
-          net user rdpuser Passw0rd! /add
-          net localgroup "Remote Desktop Users" rdpuser /add
-          Invoke-Expression "cmdkey /generic:TERMSRV/localhost /user:rdpuser /pass:Passw0rd!; mstsc /v:localhost"
-      - name: Start ngrok tunnel
-        run: |
-          C:\Windows\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
-          C:\Windows\ngrok.exe tcp 3389
-      - name: Install Remote Desktop as Windows service
-        run: |
-          C:\Windows\nssm.exe install RemoteDesktop C:\Windows\System32\mstsc.exe
+          $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
+          $ngrokConfigPath = Join-Path $env:USERPROFILE -ChildPath ".ngrok2/ngrok.yml"
+          New-Item -ItemType Directory -Path "$env:USERPROFILE\.ngrok2"
+          Set-Content -Path $ngrokConfigPath -Value "authtoken: $env:NGROK_AUTH_TOKEN"
+          Start-Process -FilePath $ngrokPath -ArgumentList "tcp 3389" -NoNewWindow
+          Set-Location -Path "C:\Windows\System32"
+          Start-Process -FilePath "mstsc.exe" -ArgumentList "localhost:3389" -NoNewWindow
       - name: Wait for RDP session to start
         run: |
           $time = Get-Date
