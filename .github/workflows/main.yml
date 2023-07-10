@@ -15,21 +15,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xrdp
       - name: Get ngrok token
-        uses: actions/setup-node@v1
-        with:
-          node-version: '16'
-      - name: Install ngrok
+        env:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
         run: |
-          npm install -g ngrok
-      - name: Get input token
-        id: input-token
-        uses: actions/core/getInput@v1
-        with:
-          key: NGROK_AUTH_TOKEN
-      - name: Start ngrok
+          echo "authtoken: $NGROK_AUTH_TOKEN" | base64 -d > /tmp/ngrok.token
+      - name: Copy NSSM & Ngrok to Windows Directory
         run: |
-          ngrok authtoken ${{ steps.input-token.outputs.value }}
-          ngrok tcp 3389
-      - name: Open RDP connection
+          mkdir -p /tmp/nssm
+          cp /tmp/ngrok.token /tmp/nssm/ngrok.token
+          cp /tmp/ngrok.exe /tmp/nssm/ngrok.exe
+      - name: Run ngrok.exe authtoken env & enable TS
         run: |
-          xfreerdp /u:Administrator /p:password /v:localhost:3389
+          cd /tmp/nssm
+          ngrok.exe authtoken ${{ env.NGROK_AUTH_TOKEN }}
+          ngrok.exe tcp 3389 --authtoken ${{ env.NGROK_AUTH_TOKEN }} --bind-tls=true --log stdout --log-level=info --config ./ngrok.yml
