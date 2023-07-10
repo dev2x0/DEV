@@ -23,7 +23,7 @@ jobs:
         run: |
           $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
           & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN
-          & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN > "$env:USERPROFILE\.ngrok2\ngrok.yml"
+          & $ngrokPath authtoken $env:NGROK_AUTH_TOKEN > "C:\Users\runneradmin\.ngrok2\ngrok.yml"
       - name: Start Ngrok Tunnel and Output RDP Connection Address
         run: |
           $ngrokPath = Join-Path $env:USERPROFILE -ChildPath "ngrok.exe"
